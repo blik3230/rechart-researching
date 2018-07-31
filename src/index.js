@@ -4,6 +4,7 @@ import ReactDOM from "react-dom";
 import FirstChart from "./FirstChart";
 import SecondChart from "./SecondChart";
 import ThirdChart from "./ThirdChart";
+import FirstPlotChart from "./FirstPlotChart";
 
 import "./styles.css";
 
@@ -32,6 +33,7 @@ function App() {
 
   return (
     <div className="App">
+      <FirstPlotChart />
       <FirstChart data={data} />
       <SecondChart />
       <ThirdChart />

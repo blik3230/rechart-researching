@@ -97,7 +97,6 @@ export default class SecondChart extends Component {
 }
 
 function CustomLabel(props) {
-  console.log(props);
   if (props.payload.value.includes("seperator")) {
     return null;
   }
