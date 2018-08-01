@@ -1,42 +1,19 @@
 import React from "react";
 import ReactDOM from "react-dom";
 
-import FirstChart from "./FirstChart";
-import SecondChart from "./SecondChart";
-import ThirdChart from "./ThirdChart";
-import FirstPlotChart from "./FirstPlotChart";
+import SecondChart from "./Components/Charts/SecondChart";
 
 import "./styles.css";
+import RechartsResultFirst from "./Components/Charts/recharts-result-first";
+import RechartsResultSecond from "./Components/Charts/recharts-result-second";
 
 function App() {
-  const data = [
-    {
-      name: "point 1",
-      value: 200
-    },
-    {
-      name: "point 2",
-      value: 300
-    },
-    {
-      name: "point 3"
-    },
-    {
-      name: "point 4",
-      value: 320
-    },
-    {
-      name: "point 5",
-      value: 360
-    }
-  ];
+
 
   return (
     <div className="App">
-      <FirstPlotChart />
-      <FirstChart data={data} />
-      <SecondChart />
-      <ThirdChart />
+      <RechartsResultFirst/>
+      <RechartsResultSecond/>
     </div>
   );
 }

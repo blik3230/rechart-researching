@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import Plot from "react-plotly.js";
+import Plot from "../../../node_modules/react-plotly.js/react-plotly";
 
 export default class FirstPlotChart extends Component {
   render() {
