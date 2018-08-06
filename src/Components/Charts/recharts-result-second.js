@@ -23,6 +23,10 @@ import mockData from '../../mock_data';
 
 
 // todo: генерировать цвет для кождого репетишина при конвертации.
+
+// todo: перепесать преобразователь для первого графика как у второго.
+
+// todo: расчитать domens для оси Y.
 const colors = [
     'red',
     'green',
@@ -32,18 +36,38 @@ const colors = [
 
 export default class RechartsResultSecond extends Component {
 
-    // объеденить два свойства.
-    data = conversionDataForChart([...mockData.experimentType2Data.table[0].cells]);
-    entityNames = getObjLevelPartRepetitionNames([...mockData.experimentType2Data.table[0].cells]);
+    constructor(props) {
+        super(props);
+
+        const temporaryData = [...mockData.experimentType2Data.table[0].cells];
+        const measurementEntitiesValues =  getMeasurementEntitiesValues(temporaryData);
+        const data = conversionDataForChart(temporaryData, measurementEntitiesValues);
+
+        console.log(measurementEntitiesValues);
+
+        this.state = {
+            measurementEntitiesValues,
+            data
+        }
+    }
+
+
     render() {
 
-        console.log();
+        const {
+            data,
+            measurementEntitiesValues
+        } = this.state;
+
+        console.clear();
+        console.log(mockData);
+        console.log(data);
 
         return (
             <LineChart
                 margin={{top: 5, right: 20, left: 20, bottom: 20}}
-                data={this.data}
-                width={this.data.length * 16}
+                data={data}
+                width={data.length * 50}
                 height={200}
             >
                 <CartesianGrid stroke="#eee" strokeDasharray="5 2" />
@@ -52,20 +76,20 @@ export default class RechartsResultSecond extends Component {
                     height={30}
                     tick={<CustomLabel />}
                     allowDataOverflow
-                    //interval={2}
+                    interval={0}
                 />
                 <YAxis
                     domain={[5.94, 6.06]}
                 />
                 {
-                    this.entityNames.parts.map(part => {
+                    measurementEntitiesValues.parts.map(part => {
                         return(
                             <ReferenceLine key={part} x={`separator ${part}`} strokeWidth={2} stroke="#666" />
                         )
                     })
                 }
                 {
-                    this.entityNames.levels.map((level, index) => {
+                    measurementEntitiesValues.levels.map((level, index) => {
                         return(
                             <Line key={level} type="monotone" dataKey={level} stroke={colors[index]} />
                         )
@@ -83,14 +107,13 @@ export default class RechartsResultSecond extends Component {
     }
 }
 
-function conversionDataForChart(data) {
-    const entityNames = getObjLevelPartRepetitionNames(data);
+function conversionDataForChart(data, measurementEntitiesValues) {
 
-    const result = entityNames.parts.map(partName => {
+    const result = measurementEntitiesValues.parts.map(partName => {
         const measurementsByPartName = data.filter(item => item.part === partName)
             .sort(getCompareByKeyFn('level', true));
 
-        return entityNames.levels.map(levelName => {
+        return measurementEntitiesValues.levels.map(levelName => {
             const tmpResult = measurementsByPartName
                 .filter(item => item.level === levelName)
                 .sort(getCompareByKeyFn('repetition'));
@@ -111,7 +134,7 @@ function conversionDataForChart(data) {
             });
         });
 
-        acc.push({tickName: 'separator ' + entityNames.parts[i]});
+        acc.push({tickName: 'separator ' + measurementEntitiesValues.parts[i]});
 
         return acc;
     }, [{tickName: 'separator empty'}]);
@@ -119,12 +142,15 @@ function conversionDataForChart(data) {
 
 
 
-// получить список всех левелов, партов и репетишинов
-function getObjLevelPartRepetitionNames(mockData) {
+// получить список всех левелов, партов, репетишинов, a также минимальное и максимальное значения.
+function getMeasurementEntitiesValues(mockData) {
+    const values = mockData.map(m => m.value);
     const result = {
         levels: [],
         parts: [],
-        repetitions: []
+        repetitions: [],
+        valueMin: Math.min(...values),
+        valueMax: Math.max(...values)
     };
 
     mockData.reduce((acc, measurement) => {
