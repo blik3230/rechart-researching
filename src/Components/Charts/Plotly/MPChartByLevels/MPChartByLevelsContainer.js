@@ -12,7 +12,7 @@ export default class MPChartByLevelsContainer extends Component {
             <div>
                 {
                     experimentType2Table.map((characteristic, i) => {
-                        return <MPChartByLevels key={i} rowData={characteristic.cells}/>
+                        return <MPChartByLevels key={i} rawData={characteristic.cells}/>
                     })
                 }
             </div>

@@ -12,7 +12,7 @@ export default class MPChartByRepetitionsContainer extends Component {
             <div>
                 {
                     experimentType2Table.map((characteristic, i) => {
-                        return <MPChartByRepetition key={i} rowData={characteristic.cells}/>
+                        return <MPChartByRepetition key={i} rawData={characteristic.cells}/>
                     })
                 }
             </div>

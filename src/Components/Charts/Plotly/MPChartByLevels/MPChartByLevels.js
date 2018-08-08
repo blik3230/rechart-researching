@@ -2,63 +2,74 @@ import React from 'react';
 import PropsTypes from 'prop-types';
 import Plot from "react-plotly.js/react-plotly";
 
-import {getCompareByKeyFn, getSortedMapPropertiesByNames, getStructuredSortedData} from "../helpers";
+import {
+    getChartSeparatorShapes,
+    getLayout,
+    getSortedChartDataInfo,
+    getStructuredSortedData
+} from "../helpers";
 
 MPChartByLevels.propTypes = {
-    rowData: PropsTypes.array.isRequired
+    rawData: PropsTypes.array.isRequired
 };
 
 export default function MPChartByLevels(props) {
 
-    const properties = ['part', 'level', 'repetition'];
-    const sortedMapProps = getSortedMapPropertiesByNames(props.rowData, properties);
-
-    const structuredSortedData = getStructuredSortedData(props.rowData, sortedMapProps, properties);
-
-    const preparedDataWithSeparator = prepareDataWithSeparator(structuredSortedData, sortedMapProps);
-
-    const shapes = [...(new Array(sortedMapProps.part.length - 1))]
-        .map((part, index) => {
-            const pos = (index + 1) * sortedMapProps.level.length * sortedMapProps.repetition.length + index;
-
-            const result = {
-                type: "line",
-                xref: "x",
-                yref: "paper",
-                x0: pos,
-                x1: pos,
-                y0: 0,
-                y1: 1,
-                line: {
-                    color: "#ccc"
-                }
-            };
-
-            return result;
-        });
-
-    const layout = {
-        width: 1520,
-        height: 400,
-        title: "MP chart by levels",
-        xaxis: {
-            type: "category",
-            tickvals: preparedDataWithSeparator.tickValue,
-            ticktext: preparedDataWithSeparator.tickText
-        },
-        legend: {
-            // xanchor: 'center'
-            // orientation: 'h',
-            // yanchor: 'bottom'
-        },
-        shapes: shapes
+    const chartSetting = {
+        short: true
     };
 
-    const data = sortedMapProps.level.map((lvl, i) => {
+    const chartConfig = getChartConfigurations(props.rawData, chartSetting);
+
+    return (
+        <div>
+            <Plot
+                layout={chartConfig.layout}
+                data={chartConfig.data}
+            />
+        </div>
+    );
+};
+
+/**
+ * Returns the complete plot configuration object for plotly.js.
+ * (For each type of graph, the implementation is structurally different)
+ *
+ * @param rawData - received data from server (the "cells" properties)
+ * @param settings {Object} for configuring type of chart
+ */
+function getChartConfigurations(rawData, settings) {
+
+    const sequenceProps = ['part', 'level', 'repetition'];
+
+    // the sorted information about chart data entities by the required sequence.
+    const chartDataInfo = getSortedChartDataInfo(rawData, sequenceProps);
+
+    // structured data by the required sequence of properties
+    const structuredSortedData = getStructuredSortedData(rawData, chartDataInfo, sequenceProps);
+
+    // an intermediate object with prepared data for chart
+    const preparedData = prepareDataWithSeparator(structuredSortedData, chartDataInfo);
+
+    // make separators
+    const separatorsCount = chartDataInfo.part.length - 1;
+    const intervalBetweenSeparators = chartDataInfo.level.length * chartDataInfo.repetition.length;
+    const shapes = getChartSeparatorShapes(separatorsCount, intervalBetweenSeparators);
+
+    // make layout
+    const layoutSetting = {
+        width: 1520,
+        height: 400,
+        title: "MP chart by levels"
+    };
+    const layout = getLayout(preparedData.tickValue, preparedData.tickText, shapes, layoutSetting);
+
+    // make data array
+    const data = chartDataInfo.level.map((lvl, i) => {
         const name = 'level' + lvl;
 
         return {
-            y: preparedDataWithSeparator[name],
+            y: preparedData[name],
             name: 'level-' + lvl,
             mode: 'lines+markers',
             line: {
@@ -68,21 +79,11 @@ export default function MPChartByLevels(props) {
         };
     });
 
-
-    console.log('preparedDataWithSeparator', preparedDataWithSeparator);
-
-    return (
-        <div>
-            <Plot
-                layout={layout}
-                data={data}
-            />
-        </div>
-    );
-};
+    return {data, layout}
+}
 
 // exclusively this chart method
-function prepareDataWithSeparator(structuredData, sortedMapProps) {
+function prepareDataWithSeparator(structuredData, chartDataInfo) {
     // part - level - repetition
     const ticks = structuredData.reduce((result, part, index) => {
         if(index) {
@@ -91,7 +92,7 @@ function prepareDataWithSeparator(structuredData, sortedMapProps) {
                 tickText: ''
             };
 
-            sortedMapProps.level.forEach(l => {
+            chartDataInfo.level.forEach(l => {
                 sep['level' + l] = null;
             })
 
@@ -105,7 +106,7 @@ function prepareDataWithSeparator(structuredData, sortedMapProps) {
                     tickText: `${m.part}${m.level}${m.repetition}`
                 };
 
-                sortedMapProps.level.forEach(level => {
+                chartDataInfo.level.forEach(level => {
                     const value = m.level === level? m.value: null;
 
                     measurement['level' + level] = value;
@@ -139,34 +140,3 @@ function prepareDataWithSeparator(structuredData, sortedMapProps) {
 
     return resultObj;
 }
-
-const exapleOfResult = [
-    {
-        tickText: 'part-1 level-A rep-1',
-        tickValue: 0,
-        levelA: 2,
-        levelB: null,
-        levelC: null
-    },
-    {
-        tickText: 'part-1 level-A rep-2',
-        tickValue: 1,
-        levelA: 3,
-        levelB: null,
-        levelC: null
-    },
-    {
-        tickText: 'part-1 level-A rep-2',
-        tickValue: 2,
-        levelA: 3,
-        levelB: null,
-        levelC: null
-    },
-    {
-        tickText: 'part-1 level-B rep-2',
-        tickValue: 3,
-        levelA: null,
-        levelB: 12,
-        levelC: null
-    }
-];

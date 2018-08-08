@@ -2,83 +2,90 @@ import React from 'react';
 import PropsTypes from 'prop-types';
 import Plot from "react-plotly.js/react-plotly";
 
-import {getSortedMapPropertiesByNames, getStructuredSortedData} from "../helpers";
+import {
+    getSortedChartDataInfo,
+    getStructuredSortedData,
+    getLayout,
+    getChartSeparatorShapes
+} from "../helpers";
 
 MPChartByRepetition.propTypes = {
-    rowData: PropsTypes.array.isRequired
+    rawData: PropsTypes.array.isRequired
 };
 
 export default function MPChartByRepetition(props) {
 
-    const properties = ['level', 'part', 'repetition'];
-    const sortedMapProps = getSortedMapPropertiesByNames(props.rowData, properties);
-    const structuredSortedDataAsArr = getStructuredSortedData(props.rowData, sortedMapProps, properties);
-    const preparedDataWithSeparator = prepareDataWithSeparator(structuredSortedDataAsArr, sortedMapProps);
-    const shapes = [...(new Array(sortedMapProps.level.length - 1))]
-        .map((level, index) => {
-            const pos = (index + 1) * sortedMapProps.part.length + index;
-
-            const result = {
-                type: "line",
-                xref: "x",
-                yref: "paper",
-                x0: pos,
-                x1: pos,
-                y0: 0,
-                y1: 1,
-                line: {
-                    color: "#ccc"
-                }
-            };
-
-            return result;
-        });
-
-    const layout = {
-        width: 1520,
-        height: 400,
-        title: "MP chart by repetitions",
-        xaxis: {
-            type: "category",
-            tickvals: preparedDataWithSeparator.tickValue,
-            ticktext: preparedDataWithSeparator.tickText
-        },
-        shapes: shapes
+    const chartSetting = {
+        short: true
     };
 
-    const data = sortedMapProps.repetition.map((rep, i) => {
-        const name = 'repetition' + rep;
-
-        return {
-            y: preparedDataWithSeparator[name],
-            name: 'repetition-' + rep,
-            mode: 'lines+markers',
-            line: {
-                shape: 'spline'
-            },
-            // marker: {
-            //     // symbol: "circle-open-dot",
-            //     // size: 8,
-            //     // line: {
-            //     //     width: 2
-            //     // }
-            // },
-            type: 'scatter'
-        };
-    });
+    const chartConfig = getChartConfigurations(props.rawData, chartSetting);
 
     return (
         <div>
             <Plot
-                data={data}
-                layout={layout}
+                data={chartConfig.data}
+                layout={chartConfig.layout}
             />
         </div>
     );
 };
 
-// exclusively this chart method
-function prepareDataWithSeparator(structuredData, sortedMapProps) {
+/**
+ * Returns the complete plot configuration object for plotly.js.
+ * (For each type of graph, the implementation is structurally different)
+ *
+ * @param rawData - received data from server (the "cells" properties)
+ * @param settings {Object} for configuring type of chart
+ */
+function getChartConfigurations(rawData, settings) {
+
+    const sequenceProps = ['level', 'part', 'repetition'];
+
+    // the sorted information about chart data entities by the required sequence.
+    const chartDataInfo = getSortedChartDataInfo(rawData, sequenceProps);
+
+    // structured data by the required sequence of properties
+    const structuredSortedData = getStructuredSortedData(rawData, chartDataInfo, sequenceProps);
+
+    // an intermediate object with prepared data for chart
+    const preparedData = prepareDataWithSeparator(structuredSortedData, chartDataInfo);
+
+    // make separators
+    const separatorsCount = chartDataInfo.level.length - 1;
+    const intervalBetweenSeparators = chartDataInfo.part.length;
+    const shapes = getChartSeparatorShapes(separatorsCount, intervalBetweenSeparators);
+
+    // make layout
+    const layoutSetting = {
+        width: 1520,
+        height: 400,
+        title: "MP chart by repetitions"
+    };
+    const layout = getLayout(preparedData.tickValue, preparedData.tickText, shapes, layoutSetting);
+
+
+    // make data array
+    // todo: Perhaps should move the creation of this array to a separate helper function?
+    const data = chartDataInfo.repetition.map((rep) => {
+        const name = 'repetition' + rep;
+
+        return {
+            y: preparedData[name],
+            name: 'repetition-' + rep,
+            mode: 'lines+markers',
+            line: {
+                shape: 'spline'
+            },
+            type: 'scatter'
+        };
+    });
+
+    return {data, layout};
+}
+
+// this function exclusively for this chart
+function prepareDataWithSeparator(structuredData, chartDataInfo) {
     // levels - parts - repetitions
     const ticks =  structuredData.reduce((result, level, index) => {
         if (index) {
@@ -87,7 +94,7 @@ function prepareDataWithSeparator(structuredData, sortedMapProps) {
                 tickText: ''
             };
 
-            sortedMapProps.repetition.forEach(r => {
+            chartDataInfo.repetition.forEach(r => {
                sep['repetition' + r] = null;
             });
 
